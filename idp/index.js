@@ -1,11 +1,84 @@
 const express = require("express");
+const saml = require('samlify');
+const handlebars = require("express-handlebars");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const session = require("express-session");
+const path = require("path");
+
+const { addMinutes } = require('date-fns')
+const { readFileSync } = require('fs');
+const { randomUUID } = require('crypto');
 
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("Hello from IDP!");
+passport.use(
+  new LocalStrategy(function verify(username, password, cb) {
+    console.log("login success with user", { username, password });
+    return cb(null, {username, password});
+  })
+);
+
+passport.serializeUser(function (user, cb) {
+  process.nextTick(function () {
+    cb(null, user);
+  });
 });
 
+passport.deserializeUser(function (user, cb) {
+  process.nextTick(function () {
+    return cb(null, user);
+  });
+});
+
+app.use(express.urlencoded({ extended: false }));
+app.engine("handlebars", handlebars.engine());
+app.set("view engine", "handlebars");
+app.set("views", path.join(__dirname, "views"));
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  session({
+    secret: "keyboard cat",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+function loggedIn(req, res, next) {
+  if (req.isAuthenticated()) {
+    next();
+  } else {
+    res.redirect("/login");
+  }
+}
+
+app.get("/", loggedIn, (req, res) => {
+  res.render("home");
+});
+
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+app.post(
+  "/login/password",
+  passport.authenticate("local",{
+    successRedirect: "/",
+    failureRedirect: "/login",
+  })
+);
+
+app.get("/logout", (req, res, next) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/");
+  });
+});
 
 const generateRequestID = () => {
     return '_' + randomUUID()
@@ -51,13 +124,14 @@ const createTemplateCallback = (idp, sp, email) => template => {
 }
 
 const sp = saml.ServiceProvider({
-    metadata: readFileSync(__dirname + '/metadata/sp-metadata.xml')
+    metadata: readFileSync(__dirname + '/../metadata/sp-metadata.xml')
 });
 
+
 const idp = saml.IdentityProvider({
-  metadata: readFileSync(__dirname + "/metadata/idp-metadata.xml"),
-  privateKey: readFileSync(__dirname + "/key/idp/private_key.pem"),
-  privateKeyPass: "jXmKf9By6ruLnUdRo90G",
+  metadata: readFileSync(__dirname + "/../metadata/idp-metadata.xml"),
+  privateKey: readFileSync(__dirname + "/../keys/idp.pem"),
+  privateKeyPass: "secret",
   isAssertionEncrypted: false,
   loginResponseTemplate: {
     context:
@@ -110,17 +184,19 @@ const idp = saml.IdentityProvider({
   },
 });
 
-app.get('/api/sso/saml2/idp/metadata', (req, res) => {
+app.get('/sso/idp/metadata', (req, res) => {
     res.type('application/xml');
     res.send(idp.getMetadata());
 });
 
-app.post('/api/sso/saml2/idp/login', async (req, res) => {
+app.get('/login/sso', async (req, res) => {
     try {
-        const user = { email: 'tuannt@tokyotechlab.com' };
-        const { context, entityEndpoint } = await idp.createLoginResponse(sp, null, saml.Constants.wording.binding.post, user, createTemplateCallback(idp, sp, user.email));
+        const requestContent = await idp.parseLoginRequest(sp, saml.Constants.wording.binding.redirect, req);
+        console.log(requestContent)
+        // const user = { email: 'tuannt@tokyotechlab.com' };
+        // const { context, entityEndpoint } = await idp.createLoginResponse(sp, null, saml.Constants.wording.binding.post, user, createTemplateCallback(idp, sp, user.email));
 
-        res.status(200).send({ samlResponse: context, entityEndpoint })
+        // res.status(200).send({ samlResponse: context, entityEndpoint })
     } catch (e) {
         console.log(e)
         res.status(500).send()

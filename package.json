@@ -7,8 +7,7 @@
   "license": "MIT",
   "scripts": {
     "idp": "node ./idp/index.js",
-    "sp1": "node ./sp1/index.js",
-    "sp2": "node ./sp2/index.js"
+    "sp": "node ./sp/index.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
@@ -19,6 +18,7 @@
     "express-session": "^1.18.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "samlify": "^2.8.11"
+    "samlify": "^2.8.11",
+    "url": "^0.11.3"
   }
 }
