@@ -1,0 +1,33 @@
+<main class="container">
+  <h1 class="text-center">Sign in SP2</h1>
+  <div class="d-flex justify-content-center ">
+    <div style="width: 300px;">
+      <form action="/login/password" method="post">
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          autocomplete="username"
+          required
+          autofocus
+          class="form-control"
+        />
+      </div>
+      <div class="mb-3">
+        <label for="current-password" class="form-label">Password</label>
+        <input
+          id="current-password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          class="form-control"
+        />
+      </div>
+      <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+    </div>
+  </div>
+</main>
