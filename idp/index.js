@@ -9,8 +9,17 @@ const path = require("path");
 const { addMinutes } = require('date-fns')
 const { readFileSync } = require('fs');
 const { randomUUID } = require('crypto');
+const url = require('url');
+const queryString = require('querystring');
 
 const app = express();
+
+saml.setSchemaValidator({
+  validate: (response) => {
+    /* implment your own or always returns a resolved promise to skip */
+    return Promise.resolve('skipped');
+  }
+});
 
 passport.use(
   new LocalStrategy(function verify(username, password, cb) {
@@ -191,12 +200,13 @@ app.get('/sso/idp/metadata', (req, res) => {
 
 app.get('/login/sso', async (req, res) => {
     try {
-        const requestContent = await idp.parseLoginRequest(sp, saml.Constants.wording.binding.redirect, req);
-        console.log(requestContent)
-        // const user = { email: 'tuannt@tokyotechlab.com' };
-        // const { context, entityEndpoint } = await idp.createLoginResponse(sp, null, saml.Constants.wording.binding.post, user, createTemplateCallback(idp, sp, user.email));
-
-        // res.status(200).send({ samlResponse: context, entityEndpoint })
+        const content = await idp.parseLoginRequest(sp, saml.Constants.wording.binding.redirect, req);
+        console.log(content)
+        const user = { email: 'tuannt@tokyotechlab.com' };
+        const data = { extract: { request: { id: content.extract.id } } }
+        const { context, entityEndpoint } = await idp.createLoginResponse(sp, data, saml.Constants.wording.binding.post, user, createTemplateCallback(idp, sp, user.email));
+        console.log(context)
+        res.redirect(entityEndpoint + '?' + queryString.stringify({ SAMLResponse: context }));
     } catch (e) {
         console.log(e)
         res.status(500).send()

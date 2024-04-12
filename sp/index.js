@@ -6,7 +6,13 @@ const session = require("express-session");
 const path = require("path");
 const saml = require('samlify');
 const { readFileSync } = require('fs');
-const url = require('url');
+
+saml.setSchemaValidator({
+  validate: (response) => {
+    /* implment your own or always returns a resolved promise to skip */
+    return Promise.resolve('skipped');
+  }
+});
 
 const app = express();
 
@@ -79,48 +85,42 @@ app.get("/logout", (req, res, next) => {
 });
 
 const idp = saml.IdentityProvider({
-  metadata: readFileSync(__dirname + '/../metadata/idp-metadata.xml'),
+  metadata: readFileSync(__dirname + "/../metadata/idp-metadata.xml"),
+  
 });
 
 const sp = saml.ServiceProvider({
-  metadata: readFileSync(__dirname + '/../metadata/sp-metadata.xml'),
+  metadata: readFileSync(__dirname + '/../metadata/sp-metadata.xml')
 });
 
 app.post("/login/sso", async (req, res) => {
   // create saml request
-  const  {id, context} = sp.createLoginRequest(idp, saml.Constants.wording.binding.redirect);
-  console.log({id, context})
-  const originalURL = url.parse(context, true);
-  const SAMLRequest = originalURL.query.SAMLRequest;
-  const content = await idp.parseLoginRequest(sp, saml.Constants.wording.binding.redirect, {query: {SAMLRequest}});
-  console.log(content)
+  const  { context } = sp.createLoginRequest(idp, saml.Constants.wording.binding.redirect);
   // redirect to idp login
   res.redirect(context);
 });
 
-app.post('/api/sso/saml2/sp/acs', async (req, res) => {
+app.get('/acs', async (req, res) => {
   try {
-      const parseResult = await sp.parseLoginResponse(idp, saml.Constants.wording.binding.post, req)
+      const parseResult = await sp.parseLoginResponse(idp, "post", { body: {
+        SAMLResponse: req.query.SAMLResponse,
+      }});
 
-      console.dir(parseResult, { depth: 20 })
-
-      res.status(204).send()
+      console.log(parseResult.extract);
+      req.logIn({
+        username: 'test',
+        password: 'test',
+      }, function(err) {
+        if (err) { return next(err); }
+        return res.redirect('/');
+      });
   } catch (e) {
       console.log(e)
       res.status(500).send()
   }
 });
 
-// app.listen(3002, () => {
-//   console.log("Service provider 2 listening on port 3002");
-// });
+app.listen(3002, () => {
+  console.log("Service provider listening on port 3002");
+});
 
-const test = async () => {
-  const  {id, context} = sp.createLoginRequest(idp, saml.Constants.wording.binding.redirect);
-  console.log({id, context})
-  const originalURL = url.parse(context, true);
-  const SAMLRequest = originalURL.query.SAMLRequest;
-  const content = await idp.parseLoginRequest(sp, saml.Constants.wording.binding.redirect, {query: {SAMLRequest}});
-  console.log(content)
-}
-test()

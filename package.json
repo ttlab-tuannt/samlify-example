@@ -16,8 +16,10 @@
     "express": "^4.19.2",
     "express-handlebars": "^7.1.2",
     "express-session": "^1.18.0",
+    "pako": "^2.1.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
+    "query-string": "^9.0.0",
     "samlify": "^2.8.11",
     "url": "^0.11.3"
   }
