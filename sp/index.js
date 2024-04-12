@@ -107,6 +107,7 @@ app.get('/acs', async (req, res) => {
       }});
 
       console.log(parseResult.extract);
+      // handle login
       req.logIn({
         username: 'test',
         password: 'test',
