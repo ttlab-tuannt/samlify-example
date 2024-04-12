@@ -93,9 +93,11 @@ const sp = saml.ServiceProvider({
   metadata: readFileSync(__dirname + '/../metadata/sp-metadata.xml')
 });
 
+
 app.post("/login/sso", async (req, res) => {
   // create saml request
   const  { context } = sp.createLoginRequest(idp, saml.Constants.wording.binding.redirect);
+  console.log('login request', context)
   // redirect to idp login
   res.redirect(context);
 });
